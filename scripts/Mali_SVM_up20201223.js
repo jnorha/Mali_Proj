@@ -19,6 +19,7 @@ Map.setCenter(-2.7956, 14.6695);
 
 var sml_area = ee.Geometry.Rectangle([-3.524597278800883,14.997499319721067,-2.302368274894633,14.367819746453346]);
 var lrg_area = ee.Geometry.Rectangle(-4.817895778349519, 16.214807952326144, 0.9059811747754809, 13.197299744033442); // Same basic region, from var
+var val_area = ee.Geometry.Rectangle([-4.269993610615814, 15.32464992930939, -2.1990707590533143, 13.248699880474987]);
 
 //Import Training areas
 
@@ -385,9 +386,11 @@ var svm_focused = classified.focal_mode({kernel: kernel, iterations: 2});
 // Mask to only show Ag Class
 var ag_mask = svm_focused.eq(1);
 var just_ag = svm_focused.updateMask(ag_mask);
+var just_ag_val = just_ag.clip(val_area);
 
 var nonag_mask = svm_focused.eq(2);
 var just_nonag = svm_focused.updateMask(nonag_mask);
+var just_nonag_val = just_nonag.clip(val_area);
 
 
 Map.addLayer(just_ag, {palette: '#BAFA56'}, 'Ag Class');
@@ -471,7 +474,7 @@ var val_image_poly = validation_poly_2
 
 // Create a vector representation of Classification
 
-var svm_vect = just_ag.addBands(just_nonag).reduceToVectors({
+var svm_vect = just_ag_val.addBands(just_nonag_val).reduceToVectors({
   scale: 30,
   geometryType: 'polygon',
   labelProperty: 'class',
@@ -494,7 +497,7 @@ var svm_err = validation_poly_2.merge(svm_vect);
 
 var val_comp_er = svm_focused.addBands(val_image_poly.select('first')); 
 
-var val_compiled = classification_vals.addBands(val_image_poly.select('first')); 
+var val_compiled = classification_vals.addBands(val_image_poly.select('first')).clip(val_area); 
 
 //var val_classified = val_points.addBands(classified.select('classification'));
 
@@ -508,7 +511,7 @@ print('Validation overall accuracy: ', testAccuracy.accuracy());
 var validiff = val_compiled.expression(
   'classification_pix - validation_pix', 
     {
-    'classification_pix': classification_vals,
+    'classification_pix': classification_vals.clip(val_area),
     'validation_pix': val_compiled.select('first')
   });
 
@@ -528,7 +531,7 @@ var nonag_as_ag = validiff.updateMask(validiff.eq(0)); // pixel group 1
 // Perform the reduction, print the result.
 var group_4_count = ag_as_nonag.reduceRegion({
   reducer: ee.Reducer.count(),
-  scale: 30,
+  scale: 40,
   maxPixels: 1e15
 });
 
@@ -537,7 +540,7 @@ var group_4_num = ee.Number(group_4_count.get('classification'));
 
 var group_3_count = nonag_as_nonag.reduceRegion({
   reducer: ee.Reducer.count(),
-  scale: 30,
+  scale: 40,
   maxPixels: 1e15
 });
 
@@ -545,7 +548,7 @@ var group_3_num = ee.Number(group_3_count.get('classification'));
 
 var group_2_count = ag_as_ag.reduceRegion({
   reducer: ee.Reducer.count(),
-  scale: 30,
+  scale: 40,
   maxPixels: 1e15
 });
 
@@ -553,7 +556,7 @@ var group_2_num = ee.Number(group_2_count.get('classification'));
 
 var group_1_count = nonag_as_ag.reduceRegion({
   reducer: ee.Reducer.count(),
-  scale: 30,
+  scale: 40,
   maxPixels: 1e15
 });
 
@@ -562,7 +565,7 @@ var group_1_num = ee.Number(group_1_count.get('classification'));
 
 var total_val_pixels = validiff.reduceRegion({
   reducer: ee.Reducer.count(),
-  scale: 30,
+  scale: 40,
   maxPixels: 1e15
 });
 
@@ -591,8 +594,8 @@ var count_check = group_4_num.add(group_3_num).add(group_2_num).add(group_1_num)
 // var nonag_consumers = group_3_num.divide((group_3_num).add(group_4_num));
 // print("Non-Agric. Consumer's Accuracy", nonag_consumers);
 
-// var total_acc = group_3_num.add(group_2_num).divide(total_val_num);
-// print('Overall Accuracy', total_acc);
+var total_acc = group_3_num.add(group_2_num).divide(total_val_num);
+print('Overall Accuracy', total_acc);
 
 // Map.addLayer(validation_poly_2, {palette:['green', 'red']}, 'Validation Polygons');
 
