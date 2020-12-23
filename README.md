@@ -31,6 +31,5 @@ BibTeX:
   year = {2020},
   publisher = {GitHub},
   journal = {GitHub repository},
-  howpublished = {\url{https://github.com/jnorha/Mali_Proj}},
-  commit = {4f57d6a0e4c030202a07a60bc1bb1ed1544bf679}
+  howpublished = {\url{https://github.com/jnorha/Mali_Proj}}
 }
